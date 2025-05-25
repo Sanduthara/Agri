@@ -1,0 +1,261 @@
+# temp-checkout.txt - This is a temporary file that we'll manually save as OrderCheckout.tsx
+
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useCartStore } from '../store/cartStore';
+import { useAuthStore } from '../store/authStore';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+const OrderCheckout = () => {
+    const navigate = useNavigate();
+    const { items, total } = useCartStore();
+    const { user } = useAuthStore();
+
+    const [loading, setLoading] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('card');
+    const [address, setAddress] = useState({
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: ''
+    });
+
+    useEffect(() => {
+        if (!user) {
+            navigate('/login');
+            toast.error('Please log in to checkout');
+        }
+
+        if (items.length === 0) {
+            navigate('/marketplace');
+            toast.error('Your cart is empty');
+        }
+    }, [user, items, navigate]);
+
+    const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setAddress({
+            ...address,
+            [name]: value
+        });
+    };
+
+    const validateForm = () => {
+        // Basic validation for shipping address
+        if (!address.street || !address.city || !address.zipCode || !address.country) {
+            toast.error('Please fill in all address fields');
+            return false;
+        }
+        return true;
+    };
+
+    const handleContinueToPayment = () => {
+        if (!validateForm()) return;
+
+        setLoading(true);
+        
+        // Navigate to place order page with address and payment method
+        navigate('/place-order', { 
+            state: { 
+                address, 
+                paymentMethod 
+            } 
+        });
+
+        setLoading(false);
+    };
+
+    // Summary of items in the cart
+    const renderCartSummary = () => {
+        return (
+            <div className="bg-white shadow-md rounded-lg p-6">
+                <h2 className="text-lg font-medium mb-4">Order Summary</h2>
+                <div className="space-y-3">
+                    {items.map((item) => (
+                        <div key={item.id} className="flex justify-between items-center">
+                            <div className="flex items-center">
+                                {item.image && (
+                                    <img 
+                                        src={item.image} 
+                                        alt={item.name}
+                                        className="w-12 h-12 object-cover rounded mr-3" 
+                                    />
+                                )}
+                                <div>
+                                    <p className="font-medium">{item.name}</p>
+                                    <p className="text-sm text-gray-500">Qty: {item.cartQuantity}</p>
+                                </div>
+                            </div>
+                            <p className="font-medium">${(item.price * item.cartQuantity).toFixed(2)}</p>
+                        </div>
+                    ))}
+
+                    <div className="border-t pt-3 mt-3">
+                        <div className="flex justify-between font-medium">
+                            <p>Total</p>
+                            <p>${total().toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="max-w-6xl mx-auto px-4 py-8">
+            <button
+                onClick={() => navigate('/marketplace')}
+                className="flex items-center text-blue-600 mb-4"
+            >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back to Marketplace
+            </button>
+
+            <h1 className="text-2xl font-semibold mb-8">Checkout - Step 1: Shipping Information</h1>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                    <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+                        <h2 className="text-lg font-medium mb-4">Shipping Address</h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                                <input
+                                    type="text"
+                                    name="street"
+                                    value={address.street}
+                                    onChange={handleAddressChange}
+                                    className="w-full p-2 border rounded"
+                                    placeholder="123 Main St"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                    <input
+                                        type="text"
+                                        name="city"
+                                        value={address.city}
+                                        onChange={handleAddressChange}
+                                        className="w-full p-2 border rounded"
+                                        placeholder="City"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                                    <input
+                                        type="text"
+                                        name="state"
+                                        value={address.state}
+                                        onChange={handleAddressChange}
+                                        className="w-full p-2 border rounded"
+                                        placeholder="State"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">ZIP/Postal Code</label>
+                                    <input
+                                        type="text"
+                                        name="zipCode"
+                                        value={address.zipCode}
+                                        onChange={handleAddressChange}
+                                        className="w-full p-2 border rounded"
+                                        placeholder="Postal code"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                                    <input
+                                        type="text"
+                                        name="country"
+                                        value={address.country}
+                                        onChange={handleAddressChange}
+                                        className="w-full p-2 border rounded"
+                                        placeholder="Country"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+                        <h2 className="text-lg font-medium mb-4">Payment Method</h2>
+                        <div className="space-y-3">
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="card-payment"
+                                    name="payment-method"
+                                    checked={paymentMethod === 'card'}
+                                    onChange={() => setPaymentMethod('card')}
+                                    className="mr-2"
+                                />
+                                <label htmlFor="card-payment" className="flex items-center">
+                                    <span className="bg-blue-100 p-1 rounded-full mr-2">
+                                        <span className="block bg-blue-500 text-white p-1 rounded-full">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                            </svg>
+                                        </span>
+                                    </span>
+                                    <span>Credit / Debit Card</span>
+                                </label>
+                            </div>
+
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="bank-transfer"
+                                    name="payment-method"
+                                    checked={paymentMethod === 'bank'}
+                                    onChange={() => setPaymentMethod('bank')}
+                                    className="mr-2"
+                                />
+                                <label htmlFor="bank-transfer" className="flex items-center">
+                                    <span className="bg-green-100 p-1 rounded-full mr-2">
+                                        <span className="block bg-green-500 text-white p-1 rounded-full">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                                            </svg>
+                                        </span>
+                                    </span>
+                                    <span>Bank Transfer</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                        <button
+                            onClick={handleContinueToPayment}
+                            disabled={loading}
+                            className={`px-6 py-3 flex items-center ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-md`}
+                        >
+                            {loading ? 'Processing...' : (
+                                <>
+                                    Continue to Payment
+                                    <ArrowRight className="h-5 w-5 ml-2" />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="lg:col-span-1">
+                    {renderCartSummary()}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default OrderCheckout;
